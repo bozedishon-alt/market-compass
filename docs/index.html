@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بوصلة السوق</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#14181f;--mut:#667085;--bd:#e3e6eb;--up:#12803c;--dn:#c62828;--neu:#7b8494;--upbg:#e6f4ea;--dnbg:#fdecea;--neubg:#eceef2;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1318;--card:#181d24;--tx:#eef1f5;--mut:#9aa4b2;--bd:#2a313b;--up:#4cc772;--dn:#ff7b72;--neu:#8b95a5;--upbg:#12301e;--dnbg:#3a1a19;--neubg:#232a33}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.7}
+main{max-width:760px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:26px;margin:8px 0 4px}h2{font-size:18px;margin:26px 0 8px}
+.sub{color:var(--mut);margin:0 0 14px}
+.warn{background:var(--neubg);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--mut);margin-bottom:16px}
+.card,.ev{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin-bottom:12px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.name{font-size:20px;font-weight:700}
+.badge{font-size:18px;font-weight:700;padding:6px 16px;border-radius:999px}
+.up{color:var(--up);background:var(--upbg)}.dn{color:var(--dn);background:var(--dnbg)}.ne{color:var(--neu);background:var(--neubg)}
+.gauge{position:relative;height:10px;border-radius:6px;margin:14px 0 4px;background:linear-gradient(90deg,var(--dn),var(--neu),var(--up));direction:ltr}
+.gauge i{position:absolute;top:-5px;width:6px;height:20px;border-radius:3px;background:var(--tx);transform:translateX(-50%)}
+.scale{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:14px}
+.row{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;padding:9px 0;border-top:1px solid var(--bd);align-items:center}
+.bar{direction:ltr;position:relative;height:8px;background:var(--neubg);border-radius:4px}
+.bar:before{content:"";position:absolute;left:50%;top:-3px;width:1px;height:14px;background:var(--mut)}
+.bar span{position:absolute;top:0;height:8px;border-radius:4px;background:currentColor}
+.row p{grid-column:1/-1;margin:0;font-size:14px;color:var(--mut)}
+.crowd{margin-top:10px;font-size:14px;background:var(--dnbg);color:var(--dn);padding:8px 12px;border-radius:10px}
+.ev h3{margin:0 0 2px;font-size:16px}.ev .nm{color:var(--mut);font-size:13px}.ev p{margin:8px 0;font-size:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chips span{padding:4px 12px;border-radius:999px;font-size:14px;font-weight:600}
+.snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.snap div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut)}
+.snap b{display:block;font-size:20px;color:var(--tx)}
+.g details{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.g summary{color:var(--tx);font-weight:600;font-size:15px}.g p{margin:8px 0 0;font-size:14px;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>🧭 بوصلة السوق</h1>
+<p class="sub" id="upd">جارٍ التحميل…</p>
+<div id="demo" class="warn" hidden>⚠️ هذه بيانات تجريبية. ستتحول لبيانات حقيقية بعد أول تشغيل للتحديث التلقائي.</div>
+<div id="cards"></div>
+<h2>📌 مؤشرات أساسية</h2><div class="snap" id="snap"></div>
+<h2>🗓️ آخر الأرقام الاقتصادية</h2><p class="sub">مقارنة آخر رقم صدر بالقراءة التي قبله.</p><div id="events"></div>
+<h2>📖 قاموس بسيط</h2>
+<div class="g">
+<details><summary>تقرير COT</summary><p>تقرير أسبوعي يوضح هل المستثمرون الكبار يشترون أو يبيعون.</p></details>
+<details><summary>الفيدرالي</summary><p>البنك المركزي الأمريكي. رفع الفائدة يضغط عادةً على الأسهم والذهب ويقوّي الدولار.</p></details>
+<details><summary>التضخم</summary><p>ارتفاع الأسعار. إذا بقي مرتفعاً يبقي الفيدرالي الفائدة عالية.</p></details>
+<details><summary>متكدسة</summary><p>لما يكون الكل شاري في اتجاه واحد يزيد احتمال انعكاس السعر.</p></details>
+</div>
+<p class="sub" style="margin-top:24px">أداة تحليلية للمعلومات فقط، وليست نصيحة استثمارية.</p>
+</main>
+<script>
+var NAMES={GOLD:"🪙 الذهب",USD:"💵 الدولار",SPX:"📈 الأسهم الأمريكية"};
+var LAB={COT:"كبار المستثمرين",MACRO:"الاقتصاد",FED:"الفيدرالي",NEWS:"الأخبار"};
+var TXT={COT:["يبيعون أكثر مما يشترون","مراكزهم متوازنة تقريباً","يشترون أكثر مما يبيعون"],
+MACRO:["أرقام التضخم والوظائف تضغط عليه","الأرقام الاقتصادية بلا اتجاه واضح","أرقام التضخم والوظائف تدعمه"],
+FED:["سياسة الفائدة الأمريكية تضغط عليه","سياسة الفائدة محايدة له","سياسة الفائدة الأمريكية تدعمه"],
+NEWS:["الأخبار العالمية تضغط عليه","الأخبار لا تؤثر عليه حالياً","الأخبار العالمية تدعمه"]};
+function esc(s){return String(s).replace(/[&<>]/g,"")}
+function cls(v,t){return v>t?"up":v<-t?"dn":"ne"}
+function idx(v){return v>0.2?2:v<-0.2?0:1}
+function power(v){var a=Math.abs(v);return a>0.6?"قوي":a>0.2?"متوسط":"ضعيف"}
+function arrow(v){return v>0.05?" ▲":v<-0.05?" ▼":" ◆"}
+function render(D){
+document.getElementById("upd").textContent="آخر تحديث: "+new Date(D.updated).toLocaleString("ar",{dateStyle:"medium",timeStyle:"short"});
+document.getElementById("demo").hidden=!D.demo;
+var h="";
+D.assets.forEach(function(d){
+var t=+d.TOTAL,c=cls(t,0.2),word=c=="up"?"صاعد ▲":c=="dn"?"هابط ▼":"محايد ◆";
+var sum=c=="ne"?"الصورة غير محسومة: بعض العوامل تدعمه وبعضها يضغط عليه.":"العوامل مجتمعة تميل "+(c=="up"?"لصالحه":"ضده")+" بقوة "+power(t)+".";
+var pos=Math.max(2,Math.min(98,50+t*50));
+h+='<div class="card"><div class="top"><span class="name">'+esc(NAMES[d.Asset]||d.Asset)+'</span><span class="badge '+c+'">'+word+'</span></div><p>'+sum+'</p><div class="gauge"><i style="left:'+pos+'%"></i></div><div class="scale"><span>هابط</span><span>محايد</span><span>صاعد</span></div>';
+if(d.Crowded)h+='<div class="crowd">⚠️ الأموال الكبيرة متكدسة في اتجاه واحد، وهذا أحياناً ينذر بانعكاس.</div>';
+h+='<details><summary>لماذا هذه النتيجة؟</summary>';
+["COT","MACRO","FED","NEWS"].forEach(function(k){var v=+d[k]||0,w=Math.min(Math.abs(v),1)*50,st=v>=0?"left:50%;":"right:50%;";
+h+='<div class="row"><b>'+LAB[k]+'</b><div class="bar '+cls(v,0.2)+'" style="background:var(--neubg)"><span style="'+st+'width:'+w+'%"></span></div><p>'+TXT[k][idx(v)]+' ('+power(v)+')</p></div>';});
+h+='</details></div>';});
+document.getElementById("cards").innerHTML=h;
+document.getElementById("snap").innerHTML=(D.snapshot||[]).map(function(s){return '<div>'+esc(s.k)+'<b>'+esc(s.v)+'</b></div>'}).join("");
+document.getElementById("events").innerHTML=(D.events||[]).map(function(e){
+var chips=Object.keys(NAMES).map(function(k){var v=(e.imp||{})[k]||0;return '<span class="'+cls(v,0.05)+'">'+NAMES[k]+arrow(v)+'</span>'}).join("");
+return '<div class="ev"><h3>'+esc(e.n)+'</h3><div class="nm">الأخير: '+e.a+e.u+' | السابق: '+e.f+e.u+'</div><p>'+esc(e.txt)+'</p><div class="chips">'+chips+'</div></div>'}).join("");
+}
+fetch("latest.json?"+Date.now()).then(function(r){return r.json()}).then(render).catch(function(){document.getElementById("upd").textContent="تعذر تحميل البيانات. شغّل التحديث من تبويب Actions."});
+</script>
+</body>
+</html>

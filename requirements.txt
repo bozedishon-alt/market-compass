@@ -1,0 +1,6 @@
+pandas
+numpy
+pandas_datareader
+cot_reports
+openpyxl
+requests
