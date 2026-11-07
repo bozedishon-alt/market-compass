@@ -145,10 +145,15 @@ def label(x):
     return "Bullish 🟢" if x > THRESHOLD else "Bearish 🔴" if x < -THRESHOLD else "Neutral ⚪"
 
 
-def analyze(fred, cot_df, headlines, fed_text=""):
+def analyze(fred, cot_df, headlines, fed_text="", extra=None):
     mf = macro_factors(fred)
     tight_fed = fed_factor(fred, fed_text)
     risk_off = news_risk_off(headlines)
+    if extra:  # دمج لوحة الاقتصاد الكلي الموسعة
+        mf = {"inflation": 0.5 * mf["inflation"] + 0.5 * extra.get("inflation", 0),
+              "growth": 0.5 * mf["growth"] + 0.5 * extra.get("growth", 0),
+              "tight_real": 0.5 * mf["tight_real"] + 0.5 * extra.get("tightening", 0)}
+        risk_off = 0.7 * risk_off + 0.3 * extra.get("risk_off", 0)
     rows = []
     for asset, ex in EXPOSURE.items():
         macro = (ex["inflation"] * mf["inflation"] + ex["growth"] * mf["growth"]
