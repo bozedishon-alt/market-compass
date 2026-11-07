@@ -46,6 +46,7 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:14px}
 <div id="cards"></div>
 <h2>📌 مؤشرات أساسية</h2><div class="snap" id="snap"></div>
 <h2>🌐 لوحة الاقتصاد الكلي</h2><p class="sub">ملخص الحالة ثم تفاصيل كل مؤشر، والأيقونات تبيّن تأثير آخر تغيّر على كل أصل.</p><div class="sum" id="msum"></div><div id="macro"></div>
+<h2>🏭 الشركات والأسواق</h2><p class="sub">أرباح الشركات، قيادة القطاعات، واتجاه أسعار الأصول التي تتداولها.</p><div id="micro"></div>
 <h2>📖 قاموس بسيط</h2>
 <div class="g">
 <details><summary>تقرير COT</summary><p>تقرير أسبوعي يوضح هل المستثمرون الكبار يشترون أو يبيعون.</p></details>
@@ -56,12 +57,13 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:14px}
 <p class="sub" style="margin-top:24px">أداة تحليلية للمعلومات فقط، وليست نصيحة استثمارية.</p>
 </main>
 <script>
-var NAMES={GOLD:"🥇 الذهب",USD:"💵 الدولار",SPX:"📈 الأسهم الأمريكية"};
-var LAB={COT:"كبار المستثمرين",MACRO:"الاقتصاد",FED:"الفيدرالي",NEWS:"الأخبار"};
+var NAMES={GOLD:"🥇 الذهب",USD:"💵 الدولار",SPX:"📈 S&P 500",NASDAQ:"📊 ناسداك",EURUSD:"💶 EUR/USD",GBPUSD:"💷 GBP/USD",USDJPY:"💴 USD/JPY",AUDUSD:"🦘 AUD/USD",USDCAD:"🍁 USD/CAD",USDCHF:"🏔️ USD/CHF"};
+var LAB={COT:"كبار المستثمرين",MACRO:"الاقتصاد",FED:"الفيدرالي",NEWS:"الأخبار",MICRO:"الشركات والأسعار"};
 var TXT={COT:["يبيعون أكثر مما يشترون","مراكزهم متوازنة تقريباً","يشترون أكثر مما يبيعون"],
 MACRO:["أرقام التضخم والوظائف تضغط عليه","الأرقام الاقتصادية بلا اتجاه واضح","أرقام التضخم والوظائف تدعمه"],
 FED:["سياسة الفائدة الأمريكية تضغط عليه","سياسة الفائدة محايدة له","سياسة الفائدة الأمريكية تدعمه"],
-NEWS:["الأخبار العالمية تضغط عليه","الأخبار لا تؤثر عليه حالياً","الأخبار العالمية تدعمه"]};
+NEWS:["الأخبار العالمية تضغط عليه","الأخبار لا تؤثر عليه حالياً","الأخبار العالمية تدعمه"],
+MICRO:["اتجاه السعر والشركات ضعيف له","الأسعار والشركات بلا اتجاه واضح","اتجاه السعر والشركات يدعمه"]};
 function esc(s){return String(s).replace(/[&<>]/g,"")}
 function cls(v,t){return v>t?"up":v<-t?"dn":"ne"}
 function idx(v){return v>0.2?2:v<-0.2?0:1}
@@ -78,12 +80,12 @@ var pos=Math.max(2,Math.min(98,50+t*50));
 h+='<div class="card"><div class="top"><span class="name">'+esc(NAMES[d.Asset]||d.Asset)+'</span><span class="badge '+c+'">'+word+'</span></div><p>'+sum+'</p><div class="gauge"><i style="left:'+pos+'%"></i></div><div class="scale"><span>هابط</span><span>محايد</span><span>صاعد</span></div>';
 if(d.Crowded)h+='<div class="crowd">⚠️ الأموال الكبيرة متكدسة في اتجاه واحد، وهذا أحياناً ينذر بانعكاس.</div>';
 h+='<details><summary>لماذا هذه النتيجة؟</summary>';
-["COT","MACRO","FED","NEWS"].forEach(function(k){var v=+d[k]||0,w=Math.min(Math.abs(v),1)*50,st=v>=0?"left:50%;":"right:50%;";
+["COT","MACRO","FED","NEWS","MICRO"].forEach(function(k){var v=+d[k]||0,w=Math.min(Math.abs(v),1)*50,st=v>=0?"left:50%;":"right:50%;";
 h+='<div class="row"><b>'+LAB[k]+'</b><div class="bar '+cls(v,0.2)+'" style="background:var(--neubg)"><span style="'+st+'width:'+w+'%"></span></div><p>'+TXT[k][idx(v)]+' ('+power(v)+')</p></div>';});
 h+='</details></div>';});
 document.getElementById("cards").innerHTML=h;
 document.getElementById("snap").innerHTML=(D.snapshot||[]).map(function(s){return '<div>'+esc(s.k)+'<b>'+esc(s.v)+'</b></div>'}).join("");
-renderMacro(D);
+renderMacro(D);renderMicro(D);
 }
 
 var MT={inflation:["يبرد","مستقر","يسخن"],growth:["يتباطأ","مستقر","يقوى"],tightening:["السياسة النقدية تخف","ثابتة","تتشدد"],risk_off:["الخوف يهدأ","هادئ","الخوف يزيد"]};
@@ -96,8 +98,26 @@ var groups={},order=[];
 document.getElementById("macro").innerHTML=order.map(function(g,gi){
 return '<details class="grp"'+(gi==0?" open":"")+'><summary>'+esc(g)+'</summary>'+groups[g].map(function(r){
 var ch=r.a>r.f?"▲ ارتفع":r.a<r.f?"▼ انخفض":"◆ ثابت";
-var chips=Object.keys(NAMES).map(function(k){var v=(r.imp||{})[k]||0;return '<span class="'+cls(v,0.05)+'">'+NAMES[k]+arrow(v)+'</span>'}).join("");
+var chips=["GOLD","SPX","USD","EURUSD","USDJPY"].map(function(k){var v=(r.imp||{})[k]||0;return '<span class="'+cls(v,0.05)+'">'+NAMES[k]+arrow(v)+'</span>'}).join("");
 return '<div class="ev"><div class="top"><b>'+esc(r.n)+'</b><span class="val">'+r.a+" "+esc(r.u)+'</span></div><div class="nm">السابق: '+r.f+" "+esc(r.u)+" · "+ch+" · "+esc(r.as_of)+'</div><p>'+esc(r.d)+'</p><div class="chips">'+chips+'</div></div>'}).join("")+'</details>'}).join("");
+}
+
+function pct(v){return (v>0?"+":"")+v+"%"}
+function renderMicro(D){
+var m=D.micro,el=document.getElementById("micro");
+if(!m){el.innerHTML='<div class="warn">بيانات الشركات والأسواق غير متاحة اليوم، والإشارات محسوبة بدونها.</div>';return}
+var h='<div class="sum">';
+if(m.earnings)h+='<span class="'+(m.earnings.beat_rate>=0.75?"up":m.earnings.beat_rate<0.6?"dn":"ne")+'">أرباح الشركات الكبرى: '+Math.round(m.earnings.beat_rate*100)+'% تفوقت على التوقعات</span>';
+h+='<span class="'+cls(m.rotation,0.2)+'">'+(m.rotation>0.2?"الأسهم الدورية تتفوق (شهية مخاطرة)":m.rotation<-0.2?"الأسهم الدفاعية تتفوق (حذر)":"لا هيمنة واضحة بين الدوري والدفاعي")+'</span>';
+h+='<span class="'+cls(m.breadth,0.2)+'">'+(m.breadth>0.2?"الارتفاع واسع بين الأسهم":m.breadth<-0.2?"الارتفاع محصور في الأسهم الكبرى":"اتساع السوق عادي")+'</span>';
+if(m.miners!==null&&m.miners!==undefined)h+='<span class="'+cls(m.miners,0.2)+'">'+(m.miners>0.2?"شركات التعدين تؤكد صعود الذهب":m.miners<-0.2?"شركات التعدين تخالف الذهب":"التعدين متوافق مع الذهب")+'</span>';
+h+='</div><details class="grp" open><summary>القطاعات (الأداء مقابل السوق آخر 3 أشهر)</summary>';
+(m.sectors||[]).forEach(function(s){var w=Math.min(Math.abs(s.rel3m)/10,1)*50,st=s.rel3m>=0?"left:50%;":"right:50%;";
+h+='<div class="row"><b>'+esc(s.n)+'</b><div class="bar '+cls(s.rel3m,0.5)+'"><span style="'+st+'width:'+w+'%"></span></div><p>'+pct(s.rel3m)+' مقابل السوق · شهر: '+pct(s.r1m)+'</p></div>'});
+h+='</details><details class="grp"><summary>اتجاه أسعار الأصول</summary>';
+(m.trends||[]).forEach(function(t){
+h+='<div class="ev"><div class="top"><b>'+esc(NAMES[t.k]||t.k)+'</b><span class="val">'+t.p+'</span></div><div class="nm">شهر: '+pct(t.r1m)+' · 3 أشهر: '+pct(t.r3m)+' · فوق متوسط 50 يوم: '+(t.a50?"✓":"✗")+' · فوق متوسط 200 يوم: '+(t.a200?"✓":"✗")+'</div></div>'});
+el.innerHTML=h+'</details>';
 }
 fetch("latest.json?"+Date.now()).then(function(r){return r.json()}).then(render).catch(function(){document.getElementById("upd").textContent="تعذر تحميل البيانات. شغّل التحديث من تبويب Actions."});
 </script>
