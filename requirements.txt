@@ -4,3 +4,5 @@ pandas_datareader
 cot_reports
 openpyxl
 requests
+yfinance
+lxml

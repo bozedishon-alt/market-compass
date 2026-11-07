@@ -14,6 +14,8 @@ from econ_calendar import event_impact
 import numpy as np
 import pandas as pd
 
+from micro import build_micro, demo_micro, earnings_stats, fetch_micro_px
+
 from market_impact import (EXPOSURE, analyze, demo_inputs, fetch_cot, fetch_fred,
                            fetch_headlines, squash, zlast)
 
@@ -201,7 +203,12 @@ def main():
 
     macro = demo_macro() if a.demo else safe(fetch_macro, {})
     mrows, msumm, extra = macro_table(macro)
-    df = analyze(fred, cot_df, heads, fed_text, extra or None)
+    if a.demo:
+        px, earn = demo_micro()
+    else:
+        px, earn = safe(fetch_micro_px, None), safe(earnings_stats, None)
+    mscores, mdet = build_micro(px, earn) if px is not None else ({}, None)
+    df = analyze(fred, cot_df, heads, fed_text, extra or None, mscores or None)
     payload = {
         "demo": a.demo,
         "updated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
@@ -209,6 +216,7 @@ def main():
         "events": fred_events(fred),
         "macro": mrows,
         "macro_summary": msumm,
+        "micro": mdet,
         "snapshot": snapshot(fred),
         "sources": {"headlines": len(heads), "fed_text": bool(fed_text)},
     }

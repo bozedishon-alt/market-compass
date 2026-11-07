@@ -21,13 +21,28 @@ EXPOSURE = {
     "GOLD": {"inflation": 0.3, "growth": -0.1, "tightening": -0.6, "risk_off": 0.6},
     "USD":  {"inflation": 0.2, "growth": 0.3,  "tightening": 0.6,  "risk_off": 0.3},
     "SPX":  {"inflation": -0.2, "growth": 0.5, "tightening": -0.5, "risk_off": -0.6},
+    "NASDAQ": {"inflation": -0.3, "growth": 0.5, "tightening": -0.6, "risk_off": -0.7},
+    "EURUSD": {"inflation": -0.15, "growth": -0.25, "tightening": -0.5, "risk_off": -0.25},
+    "GBPUSD": {"inflation": -0.15, "growth": -0.25, "tightening": -0.5, "risk_off": -0.3},
+    "AUDUSD": {"inflation": -0.15, "growth": 0.0, "tightening": -0.5, "risk_off": -0.6},
+    "USDJPY": {"inflation": 0.1, "growth": 0.3, "tightening": 0.7, "risk_off": -0.3},
+    "USDCAD": {"inflation": 0.15, "growth": 0.2, "tightening": 0.5, "risk_off": 0.35},
+    "USDCHF": {"inflation": 0.15, "growth": 0.25, "tightening": 0.6, "risk_off": -0.2},
 }
 COT_MARKET = {  # جزء من اسم العقد في تقرير COT
     "GOLD": "GOLD - COMMODITY EXCHANGE",
     "USD": "USD INDEX",
     "SPX": "E-MINI S&P 500",
+    "NASDAQ": "NASDAQ",
+    "EURUSD": "EURO FX - CHICAGO",
+    "GBPUSD": "BRITISH POUND",
+    "AUDUSD": "AUSTRALIAN DOLLAR",
+    "USDJPY": "JAPANESE YEN",
+    "USDCAD": "CANADIAN DOLLAR",
+    "USDCHF": "SWISS FRANC",
 }
-WEIGHTS = {"cot": 0.25, "macro": 0.30, "fed": 0.20, "news": 0.25}
+COT_SIGN = {"USDJPY": -1, "USDCAD": -1, "USDCHF": -1}  # العملة المقابلة للدولار: مراكزها معكوسة
+WEIGHTS = {"cot": 0.22, "macro": 0.26, "fed": 0.17, "news": 0.20, "micro": 0.15}
 THRESHOLD = 0.20  # بين -0.2 و +0.2 = Neutral
 
 HAWKISH = ["inflation remains elevated", "further tightening", "restrictive",
@@ -126,9 +141,11 @@ def news_risk_off(headlines, half_life_h=24):
 
 
 def cot_score(cot_df, market_key, window=156):
-    m = cot_df[cot_df["Market and Exchange Names"].str.contains(market_key, regex=False)]
+    names = cot_df["Market and Exchange Names"]
+    m = cot_df[names.str.upper().str.startswith(market_key.upper())]
     if m.empty:
         return 0.0, None, False
+    m = m[m["Market and Exchange Names"] == m["Market and Exchange Names"].value_counts().idxmax()]
     m = m.sort_values("As of Date in Form YYYY-MM-DD")
     net = (m["Noncommercial Positions-Long (All)"]
            - m["Noncommercial Positions-Short (All)"]).reset_index(drop=True)
@@ -145,7 +162,7 @@ def label(x):
     return "Bullish 🟢" if x > THRESHOLD else "Bearish 🔴" if x < -THRESHOLD else "Neutral ⚪"
 
 
-def analyze(fred, cot_df, headlines, fed_text="", extra=None):
+def analyze(fred, cot_df, headlines, fed_text="", extra=None, micro=None):
     mf = macro_factors(fred)
     tight_fed = fed_factor(fred, fed_text)
     risk_off = news_risk_off(headlines)
@@ -160,9 +177,18 @@ def analyze(fred, cot_df, headlines, fed_text="", extra=None):
                  + ex["tightening"] * mf["tight_real"])
         fed = ex["tightening"] * tight_fed
         news = ex["risk_off"] * risk_off
-        cot, idx, crowded = cot_score(cot_df, COT_MARKET[asset])
+        if asset in COT_MARKET:
+            cot, idx, crowded = cot_score(cot_df, COT_MARKET[asset])
+        else:
+            cot, idx, crowded = 0.0, None, False
+        sign = COT_SIGN.get(asset, 1)
+        cot *= sign
+        if idx is not None and sign < 0:
+            idx = 100 - idx
         parts = {"cot": cot, "macro": macro, "fed": fed, "news": news}
-        total = sum(WEIGHTS[k] * v for k, v in parts.items())
+        if micro:
+            parts["micro"] = micro.get(asset, 0.0)
+        total = sum(WEIGHTS[k] * v for k, v in parts.items()) / sum(WEIGHTS[k] for k in parts)
         rows.append({"Asset": asset, **{k.upper(): round(v, 3) for k, v in parts.items()},
                      "TOTAL": round(total, 3), "Signal": label(total),
                      "COT_Index": None if idx is None else round(idx, 1),
